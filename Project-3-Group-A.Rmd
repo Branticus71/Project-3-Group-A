@@ -26,11 +26,20 @@ df_lifestyle
 ```
 # EDA
 
-Calculating the correlation of each predictor variable with the outcome variable `shares`
+Calculating the correlation of each predictor variable with the outcome variable `shares` and graphing it.
 ```{r}
 cor_lifestyle <- df_lifestyle %>%
   correlate() %>%
   focus(shares)
 cor_lifestyle
+
+#Graph of the correlations but it's pretty messy. Might be a way to automate only including the top 10 correlated variables to use later
+cor_lifestyle %>% 
+  mutate(term = factor(term, levels = term[order(shares)])) %>%  # Order by correlation strength
+  ggplot(aes(x = term, y = shares)) +
+    geom_bar(stat = "identity") +
+    ylab("Correlation with shares") +
+    xlab("Variable") +
+  theme(axis.text.x = element_text(angle = 90)) 
 ```
 
