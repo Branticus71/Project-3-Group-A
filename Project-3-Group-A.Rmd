@@ -4,4 +4,33 @@ author: "Brant Armstrong, Naman Goel"
 date: "2022-11-06"
 output: html_document
 ---
+# Necessary Packages
+```{r, message = FALSE}
+library(tidyverse)
+library(caret)
+library(corrplot)
+library(corrr)
+```
+# Reading in Data
+
+```{r}
+df <- read_csv("./OnlineNewsPopularity.csv")
+df
+#Subsetting to just lifestyle articles and removing the two non-predictive variables.
+df_lifestyle <- df %>%
+                filter(data_channel_is_lifestyle == 1) %>%
+                select(-c(url, timedelta, data_channel_is_bus, data_channel_is_entertainment,
+                          data_channel_is_socmed, data_channel_is_tech, data_channel_is_world,
+                          data_channel_is_lifestyle))
+df_lifestyle
+```
+# EDA
+
+Calculating the correlation of each predictor variable with the outcome variable `shares`
+```{r}
+cor_lifestyle <- df_lifestyle %>%
+  correlate() %>%
+  focus(shares)
+cor_lifestyle
+```
 
