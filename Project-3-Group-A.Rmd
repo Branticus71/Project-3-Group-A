@@ -45,8 +45,10 @@ cor_lifestyle %>%
 
 Principal Components
 ```{r}
-PCs <- prcomp(select(df_lifestyle, -shares), center = TRUE, 
-                     scale = TRUE)
+PCs <- prcomp(select(df_lifestyle, -c(shares, weekday_is_monday, weekday_is_tuesday,
+                                      weekday_is_wednesday, weekday_is_thursday,
+                                      weekday_is_friday, weekday_is_saturday,
+                                      weekday_is_sunday)), center = TRUE, scale = TRUE)
 par(mfrow = c(1,2))
 plot(PCs$sdev^2/sum(PCs$sdev^2), xlab = "Principal Component",
 ylab = "Proportion of Variance Explained", ylim = c(0, 1), type = 'b')
