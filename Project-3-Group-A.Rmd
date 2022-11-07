@@ -10,6 +10,7 @@ library(tidyverse)
 library(caret)
 library(corrplot)
 library(corrr)
+library(psych)
 ```
 # Reading in Data
 
@@ -45,14 +46,21 @@ cor_lifestyle %>%
 
 Principal Components
 ```{r}
-PCs <- prcomp(select(df_lifestyle, -c(shares, weekday_is_monday, weekday_is_tuesday,
+df_continuous <- df_lifestyle %>%
+  select(-c(weekday_is_monday, weekday_is_tuesday,
                                       weekday_is_wednesday, weekday_is_thursday,
                                       weekday_is_friday, weekday_is_saturday,
-                                      weekday_is_sunday)), center = TRUE, scale = TRUE)
+                                      weekday_is_sunday))
+PCs <- prcomp(select(df_continuous, -shares), center = TRUE, scale = TRUE)
 par(mfrow = c(1,2))
 plot(PCs$sdev^2/sum(PCs$sdev^2), xlab = "Principal Component",
 ylab = "Proportion of Variance Explained", ylim = c(0, 1), type = 'b')
 plot(cumsum(PCs$sdev^2/sum(PCs$sdev^2)), xlab = "Principal Component",
 ylab = "Cum. Prop of Variance Explained", ylim = c(0, 1), type = 'b')
+#Need to automate a method to select only PC's I want, either all eigenvalues>1 or until 80% variance explained most likely.
+```
+
+```{r}
+describe(df_continuous, fast = TRUE)
 ```
 
