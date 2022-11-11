@@ -72,20 +72,31 @@ cor_train %>%
 
 Principal Components
 ```{r}
+#Removing variables that aren't continuous
 df_continuous <- df_train %>%
-  select(-c(weekday_is_monday, weekday_is_tuesday,
-            weekday_is_wednesday, weekday_is_thursday,
-            weekday_is_friday, weekday_is_saturday,
-            weekday_is_sunday, is_weekend, data_channel))
-PCs <- prcomp(select(df_continuous, -log_shares), center = TRUE, scale = TRUE)
+  select(-c(weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday,
+            weekday_is_friday, weekday_is_saturday, weekday_is_sunday, is_weekend, data_channel,
+            n_non_stop_words))
+#Excluding shares for creating principal components
+df_no_shares <- df_continuous %>%
+  select(-log_shares)
+#Creating PC's along with center and scaling variables
+PCs <- prcomp(df_no_shares, center = TRUE, scale = TRUE)
+#Creating screeplots
 par(mfrow = c(1,2))
 plot(PCs$sdev^2/sum(PCs$sdev^2), xlab = "Principal Component",
 ylab = "Proportion of Variance Explained", ylim = c(0, 1), type = 'b')
 plot(cumsum(PCs$sdev^2/sum(PCs$sdev^2)), xlab = "Principal Component",
 ylab = "Cum. Prop of Variance Explained", ylim = c(0, 1), type = 'b')
-#Need to automate a method to select only PC's I want, either all eigenvalues>1 or until 80% variance explained most likely.
+#Selecting only the PC's up to a 80% variance explained threshold using caret
+PCs_eighty <- preProcess(df_no_shares, method = c("center","scale", "pca"), thresh = .8)
+#Creating a data frame with just my PC's and log_shares to use later as a regression
+df_PC <- predict(PCs_eighty, newdata = df_no_shares)
+df_PC <- df_PC %>%
+  bind_cols(log_shares = df_continuous$log_shares)
 ```
-Summary statistics using the `describe` function from the `psych` package.
+
+Summary statistics using the `describe` function from the `psych` package sorted by standard deviation.
 ```{r}
 tab <-  describe(df_continuous, fast = TRUE)
 #Arranging by Standard Deviation and rounding to two places
@@ -122,12 +133,12 @@ categ_day <- df_train %>%
       )
     )
   ))
-
+#Box plot of log_shares by day
 ggplot(categ_day, aes(x = day, y = log_shares, col = day)) + 
   geom_boxplot(fill="grey") + 
   geom_jitter() + 
   ylab("Log Shares") + 
-  xlab("Day") +
+  xlab("") +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Boxplot for Log Shares by Day")
 ```
