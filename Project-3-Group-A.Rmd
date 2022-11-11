@@ -39,13 +39,14 @@ df <- df %>%
   select(-c(url, timedelta, data_channel_is_bus, data_channel_is_entertainment,
             data_channel_is_socmed, data_channel_is_tech, data_channel_is_world,
             data_channel_is_lifestyle)) %>%
-  mutate(log_shares = log(shares))
+  mutate(log_shares = log(shares)) %>%
+  select(-shares)
   
 #Subsetting to just a single data_channel type
 df_filtered <- df %>%
                 filter(data_channel == "Lifestyle") 
 #Creating the training and test datasets
-index_train <- createDataPartition(df_filtered$shares, p = .7, list = FALSE )
+index_train <- createDataPartition(df_filtered$log_shares, p = .7, list = FALSE )
 df_train <- df_filtered[index_train,]
 df_test <- df_filtered[-index_train,]
 
@@ -56,15 +57,15 @@ Calculating the correlation of each predictor variable with the outcome variable
 ```{r}
 cor_train<- df_train %>%
   correlate() %>%
-  focus(shares)
+  focus(log_shares)
 paged_table(cor_train)
 
 #Graph of the correlations but it's pretty messy. Might be a way to automate only including the top 10 correlated variables to use later
 cor_train %>% 
-  mutate(term = factor(term, levels = term[order(shares)])) %>%  # Order by correlation strength
+  mutate(term = factor(term, levels = term[order(log_shares)])) %>%  # Order by correlation strength
   ggplot(aes(x = term, y = log_shares)) +
     geom_bar(stat = "identity") +
-    ylab("Correlation with shares") +
+    ylab("Correlation with log(Shares)") +
     xlab("Variable") +
   theme(axis.text.x = element_text(angle = 90)) 
 ```
@@ -75,7 +76,7 @@ df_continuous <- df_train %>%
   select(-c(weekday_is_monday, weekday_is_tuesday,
             weekday_is_wednesday, weekday_is_thursday,
             weekday_is_friday, weekday_is_saturday,
-            weekday_is_sunday, is_weekend))
+            weekday_is_sunday, is_weekend, data_channel))
 PCs <- prcomp(select(df_continuous, -log_shares), center = TRUE, scale = TRUE)
 par(mfrow = c(1,2))
 plot(PCs$sdev^2/sum(PCs$sdev^2), xlab = "Principal Component",
@@ -122,7 +123,7 @@ categ_day <- df_train %>%
     )
   ))
 
-ggplot(categ_day, aes(x = day, y = log(shares), col = day)) + 
+ggplot(categ_day, aes(x = day, y = log_shares, col = day)) + 
   geom_boxplot(fill="grey") + 
   geom_jitter() + 
   ylab("Log Shares") + 
