@@ -11,33 +11,58 @@ library(caret)
 library(corrplot)
 library(corrr)
 library(psych)
+library(rmarkdown)
 ```
 # Reading in Data
 
 ```{r}
 df <- read_csv("./OnlineNewsPopularity.csv")
-df
-#Subsetting to just lifestyle articles and removing the two non-predictive variables.
-df_lifestyle <- df %>%
-                filter(data_channel_is_lifestyle == 1) %>%
-                select(-c(url, timedelta, data_channel_is_bus, data_channel_is_entertainment,
-                          data_channel_is_socmed, data_channel_is_tech, data_channel_is_world,
-                          data_channel_is_lifestyle))
-df_lifestyle
+#Creating a new variable for to contain data channels and removing the old one.
+df <- df %>%
+  mutate(data_channel = if_else(
+    data_channel_is_bus == 1,
+    "Business",
+    if_else(
+      data_channel_is_entertainment == 1,
+      "Entertainment",
+      if_else(
+        data_channel_is_lifestyle == 1,
+        "Lifestyle",
+        if_else(
+          data_channel_is_socmed == 1,
+          "Socmed",
+          if_else(data_channel_is_tech == 1, "Tech", "World")
+        )
+      )
+    )
+  )) %>% 
+  select(-c(url, timedelta, data_channel_is_bus, data_channel_is_entertainment,
+            data_channel_is_socmed, data_channel_is_tech, data_channel_is_world,
+            data_channel_is_lifestyle)) %>%
+  mutate(log_shares = log(shares))
+  
+#Subsetting to just a single data_channel type
+df_filtered <- df %>%
+                filter(data_channel == "Lifestyle") 
+#Creating the training and test datasets
+index_train <- createDataPartition(df_filtered$shares, p = .7, list = FALSE )
+df_train <- df_filtered[index_train,]
+df_test <- df_filtered[-index_train,]
+
 ```
 # EDA
 
 Calculating the correlation of each predictor variable with the outcome variable `shares` and graphing it.
 ```{r}
-cor_lifestyle <- df_lifestyle %>%
+cor_train<- df_train %>%
   correlate() %>%
   focus(shares)
-cor_lifestyle
+paged_table(cor_train)
 
 #Graph of the correlations but it's pretty messy. Might be a way to automate only including the top 10 correlated variables to use later
-cor_lifestyle %>% 
+cor_train %>% 
   mutate(term = factor(term, levels = term[order(shares)])) %>%  # Order by correlation strength
-  ggplot(aes(x = term, y = shares)) +
+  ggplot(aes(x = term, y = log_shares)) +
     geom_bar(stat = "identity") +
     ylab("Correlation with shares") +
     xlab("Variable") +
@@ -46,12 +71,12 @@ cor_lifestyle %>%
 
 Principal Components
 ```{r}
-df_continuous <- df_lifestyle %>%
+df_continuous <- df_train %>%
   select(-c(weekday_is_monday, weekday_is_tuesday,
             weekday_is_wednesday, weekday_is_thursday,
             weekday_is_friday, weekday_is_saturday,
             weekday_is_sunday, is_weekend))
-PCs <- prcomp(select(df_continuous, -shares), center = TRUE, scale = TRUE)
+PCs <- prcomp(select(df_continuous, -log_shares), center = TRUE, scale = TRUE)
 par(mfrow = c(1,2))
 plot(PCs$sdev^2/sum(PCs$sdev^2), xlab = "Principal Component",
 ylab = "Proportion of Variance Explained", ylim = c(0, 1), type = 'b')
@@ -61,17 +86,53 @@ ylab = "Cum. Prop of Variance Explained", ylim = c(0, 1), type = 'b')
 ```
 Summary statistics using the `describe` function from the `psych` package.
 ```{r}
-describe(df_continuous, fast = TRUE)
+tab <-  describe(df_continuous, fast = TRUE)
+#Arranging by Standard Deviation and rounding to two places
+table_continuous <- tab %>%
+  arrange(desc(sd)) %>%
+  modify_if( ~is.numeric(.), ~round(.,2))
+#Paged table to allow reader to peruse all variables
+paged_table(table_continuous)
 ```
 
 Summary statistics for each variable categorized by newly created `Day` variable.
 ```{r}
-categ_lifestyle <- df_lifestyle %>%
-  mutate(Day = if_else(weekday_is_monday == 1, "Monday", if_else(weekday_is_tuesday == 1, "Tuesday",
-               if_else(weekday_is_wednesday == 1, "Wednesday", if_else(weekday_is_thursday == 1,
-               "Thursday", if_else(weekday_is_friday == 1, "Friday", if_else(weekday_is_saturday == 1,
-               "Saturday", "Sunday")))))))
-table_by_day <- describeBy(categ_lifestyle, group = categ_lifestyle$Day, fast = TRUE)
-table_by_day
+#Creating a Day variable from the different discrete variables for graphs
+categ_day <- df_train %>%
+  mutate(day = if_else(
+    weekday_is_monday == 1,
+    "Monday",
+    if_else(
+      weekday_is_tuesday == 1,
+      "Tuesday",
+      if_else(
+        weekday_is_wednesday == 1,
+        "Wednesday",
+        if_else(
+          weekday_is_thursday == 1,
+          "Thursday",
+          if_else(
+            weekday_is_friday == 1,
+            "Friday",
+            if_else(weekday_is_saturday == 1,
+                    "Saturday", "Sunday")
+          )
+        )
+      )
+    )
+  ))
+
+ggplot(categ_day, aes(x = day, y = log(shares), col = day)) + 
+  geom_boxplot(fill="grey") + 
+  geom_jitter() + 
+  ylab("Log Shares") + 
+  xlab("Day") +
+  theme(axis.text.x = element_text(angle = 45)) +
+  ggtitle("Boxplot for Log Shares by Day")
+```
+
+
+```{r}
+
 ```
 
