@@ -28,7 +28,7 @@ Need to decide on what variables we will use to predict log_shares. Some ideas b
 3. n_unique_tokens: Rate of unique words in the content
 4. rate_positive_words: Rate of positive words among non-neutral tokens
 5. rate_negative_words: Rate of negative words among non-neutral tokens
-6. variable for day
+6. Discrete variables for each day
 7. num_videos: Number of videos
 8. num_hrefs: Number of links
 9. kw_avg_avg: Avg. keyword (avg. shares)
@@ -202,11 +202,11 @@ This is the above scatterplots in a facet wrap. They come out pretty small
 interest_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
                    "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title")
 categ_day %>%
-  gather(interest_vars, key = "var", value = "value") %>%
+  gather(interest_vars, key = "variables", value = "value") %>%
   ggplot(aes(x = value, y = log_shares, color = day)) +
     geom_point() +
     stat_smooth(method = "lm") +
-    facet_wrap(~ var, scales = "free", shrink = FALSE, ncol=2  ) +
+    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  ) +
     theme_bw()
 ```
 
