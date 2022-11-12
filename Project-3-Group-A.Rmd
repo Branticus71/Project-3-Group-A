@@ -33,6 +33,7 @@ Need to decide on what variables we will use to predict log_shares. Some ideas b
 8. num_hrefs: Number of links
 9. kw_avg_avg: Avg. keyword (avg. shares)
 10. n_tokens_title: Number of words in the title
+11. self_reference_avg_sharess: Avg. shares of referenced articles in Mashable
 
 ```{r}
 df <- read_csv("./OnlineNewsPopularity.csv")
@@ -109,74 +110,16 @@ ggplot(categ_day, aes(x = day, y = log_shares, col = day)) +
   ggtitle("Boxplot for Log Shares by Day")
 ```
 
-Here are a bunch of quick scatter plots for variables of interest that can be modified to be used in the project
-```{r}
-ggplot(categ_day, aes(y = log_shares, x = num_hrefs, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("num_hrefs") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = num_videos, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("num_videos") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = num_imgs, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("num_imgs") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = rate_negative_words, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("rate_negative_words") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = rate_positive_words, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("rate_positive_words") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = n_unique_tokens, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("n_unique_tokens") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = n_tokens_content, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("n_tokens_content") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = kw_avg_avg, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("kw_avg_avg") + 
-  ylab("log_shares")
-
-ggplot(categ_day, aes(y = log_shares, x = n_tokens_title, color = day)) + 
-  geom_point(stat = "identity", position = "jitter") + 
-  geom_smooth( method = "lm")  + 
-  xlab("n_tokens_title") + 
-  ylab("log_shares")
-```
-
-This is the above scatterplots in a facet wrap. They come out pretty small
-```{r}
+Scatterplot of all continuous predictors in a facet wrap. 
+```{r, fig.height=9}
 interest_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
-                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title")
+                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title", "self_reference_avg_sharess")
 categ_day %>%
   gather(interest_vars, key = "variables", value = "value") %>%
   ggplot(aes(x = value, y = log_shares, color = day)) +
-    geom_point() +
+    geom_point(position = "jitter") +
     stat_smooth(method = "lm") +
-    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  ) +
-    theme_bw()
+    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  ) 
 ```
 
 Calculating the correlation of each predictor variable with the outcome variable `shares` and graphing it.
@@ -247,6 +190,7 @@ postResample(pred_PC, obs = df_test$log_shares)
 
 Random Forest
 ```{r}
+#May need to add or remove variables later
 forest_vars <- c("log_shares","num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
                    "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title",
                    "tuesday", "wednesday","thursday","friday", "saturday", "sunday", "monday")
@@ -256,7 +200,7 @@ set.seed(111)
 fit_forest <- train(log_shares ~ ., data = df_forest, method = "treebag",
                  trControl = trainControl(method = "cv" , number = 10),
                  preProcess = c("center", "scale"),
-                 mtry = c(1:17))
+                 mtry = c(1:16))
 pred_forest <- predict(fit_forest, newdata = df_test)
 postResample(pred_forest, df_test$log_shares)
 ```
