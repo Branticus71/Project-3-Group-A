@@ -245,3 +245,19 @@ pred_PC <- predict(fit_PC, newdata = test_PC)
 postResample(pred_PC, obs = df_test$log_shares)
 ```
 
+Random Forest
+```{r}
+forest_vars <- c("log_shares","num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
+                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title",
+                   "tuesday", "wednesday","thursday","friday", "saturday", "sunday", "monday")
+df_forest <- df_train %>%
+  select(forest_vars)
+set.seed(111)
+fit_forest <- train(log_shares ~ ., data = df_forest, method = "treebag",
+                 trControl = trainControl(method = "cv" , number = 10),
+                 preProcess = c("center", "scale"),
+                 mtry = c(1:17))
+pred_forest <- predict(fit_forest, newdata = df_test)
+postResample(pred_forest, df_test$log_shares)
+```
+
