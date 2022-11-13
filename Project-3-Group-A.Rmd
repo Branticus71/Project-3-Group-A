@@ -5,7 +5,7 @@ date: "2022-11-06"
 output: html_document
 ---
 # Necessary Packages
-```{r, message = FALSE}
+```{r, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(caret)
 library(corrplot)
@@ -23,6 +23,7 @@ This section should be done by the ‘second’ group member.
 
 # Reading in Data
 Need to decide on what variables we will use to predict log_shares. Some ideas below:
+
 1. num_imgs: Number of images
 2. n_tokens_content: Number of words in the content
 3. n_unique_tokens: Rate of unique words in the content
@@ -98,7 +99,7 @@ df_continuous <- df_train %>%
 
 # Summarization
 
-##Boxplot of Log(shares) by Day.
+## Boxplot of Log(shares) by Day.
 ```{r}
 #Box plot of log_shares by day
 ggplot(categ_day, aes(x = day, y = log_shares, col = day)) + 
@@ -109,6 +110,7 @@ ggplot(categ_day, aes(x = day, y = log_shares, col = day)) +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Boxplot for Log Shares by Day")
 ```
+
 We can see if there is a perceived effect of the `day` the article is published on shares by looking at the behavior of each boxplot. If certain days have higher or lower medians along with different size whiskers then there may be a relationship between publishing `day` and the amount of shares an article gets.
 
 ## Scatterplot of all Continuous Predictors Versus Log(shares) in a Facet Wrap. 
@@ -122,6 +124,7 @@ categ_day %>%
     stat_smooth(method = "lm") +
     facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  )
 ```
+
 For these graphs, it helps to focus on each line and it's color. If all lines are generally negative in slope then we expect there to be a negative relationship between that variable and the number of shares while positive slope means a positive relationship. If the lines differ quite a bit between color then there is most likely an interaction between that variable, the `day` of release, and shares. Also, keep in mind that any outliers could have a strong effect on the creation of the line and in turn it's slope potentially misrepresenting the relationship between that variable and shares. 
 
 
@@ -142,9 +145,10 @@ cor_train %>%
     xlab("Variable") +
   theme(axis.text.x = element_text(angle = 90)) 
 ```
+
 Fairly self explanatory graph, the variables most correlated with shares will most likely be some of the strongest predictors in the models; particularly the linear regressions.
 
-Summary statistics using the `describe` function from the `psych` package sorted by standard deviation.
+## Summary statistics using the `describe` function from the `psych` package sorted by standard deviation.
 ```{r}
 tab <-  describe(df_continuous, fast = TRUE)
 #Arranging by Standard Deviation and rounding to two places
@@ -155,7 +159,7 @@ table_continuous <- tab %>%
 paged_table(table_continuous)
 ```
 
-Principal Components
+## Principal Components Screeplot
 ```{r}
 #Excluding shares for creating principal components
 df_no_shares <- df_continuous %>%
@@ -180,7 +184,9 @@ df_PC <- df_PC %>%
 
 ```
 
-Principal Components Regression
+# Modeling
+
+## Principal Components Regression
 ```{r}
 set.seed(111)
 fit_PC <- train(log_shares ~ ., data = df_PC, 
@@ -193,8 +199,8 @@ pred_PC <- predict(fit_PC, newdata = test_PC)
 postResample(pred_PC, obs = df_test$log_shares)
 ```
 
-Random Forest
-```{r}
+## Random Forest
+```{r, warning = FALSE}
 #May need to add or remove variables later
 forest_vars <- c("log_shares","num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
                    "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title",
