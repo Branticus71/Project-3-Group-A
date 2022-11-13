@@ -98,7 +98,7 @@ df_continuous <- df_train %>%
 
 # Summarization
 
-Creating a boxplot of log_shares by newly created `Day` variable.
+##Boxplot of Log(shares) by Day.
 ```{r}
 #Box plot of log_shares by day
 ggplot(categ_day, aes(x = day, y = log_shares, col = day)) + 
@@ -109,35 +109,40 @@ ggplot(categ_day, aes(x = day, y = log_shares, col = day)) +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Boxplot for Log Shares by Day")
 ```
+We can see if there is a perceived effect of the `day` the article is published on shares by looking at the behavior of each boxplot. If certain days have higher or lower medians along with different size whiskers then there may be a relationship between publishing `day` and the amount of shares an article gets.
 
-Scatterplot of all continuous predictors in a facet wrap. 
+## Scatterplot of all Continuous Predictors Versus Log(shares) in a Facet Wrap. 
 ```{r, fig.height=9}
 interest_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
                    "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title", "self_reference_avg_sharess")
 categ_day %>%
   gather(interest_vars, key = "variables", value = "value") %>%
   ggplot(aes(x = value, y = log_shares, color = day)) +
-    geom_point(position = "jitter") +
+    geom_jitter() +
     stat_smooth(method = "lm") +
-    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  ) 
+    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  )
 ```
+For these graphs, it helps to focus on each line and it's color. If all lines are generally negative in slope then we expect there to be a negative relationship between that variable and the number of shares while positive slope means a positive relationship. If the lines differ quite a bit between color then there is most likely an interaction between that variable, the `day` of release, and shares. Also, keep in mind that any outliers could have a strong effect on the creation of the line and in turn it's slope potentially misrepresenting the relationship between that variable and shares. 
 
-Calculating the correlation of each predictor variable with the outcome variable `shares` and graphing it.
+
+
+## Correlation Plot of Each Variable with Shares
 ```{r}
+#Need to limit to just predictors of interest once those are decided on
 cor_train<- df_train %>%
   correlate() %>%
   focus(log_shares)
 paged_table(cor_train)
 
-#Graph of the correlations but it's pretty messy. Might be a way to automate only including the top 10 correlated variables to use later
 cor_train %>% 
-  mutate(term = factor(term, levels = term[order(log_shares)])) %>%  # Order by correlation strength
+  mutate(term = factor(term, levels = term[order(log_shares)])) %>% 
   ggplot(aes(x = term, y = log_shares)) +
     geom_bar(stat = "identity") +
     ylab("Correlation with log(Shares)") +
     xlab("Variable") +
   theme(axis.text.x = element_text(angle = 90)) 
 ```
+Fairly self explanatory graph, the variables most correlated with shares will most likely be some of the strongest predictors in the models; particularly the linear regressions.
 
 Summary statistics using the `describe` function from the `psych` package sorted by standard deviation.
 ```{r}
