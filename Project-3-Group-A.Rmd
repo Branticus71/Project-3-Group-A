@@ -13,6 +13,7 @@ library(corrr)
 library(psych)
 library(rmarkdown)
 library(kableExtra)
+library(timereg)
 ```
 # Introduction
 
@@ -148,8 +149,47 @@ cor_train %>%
   theme(axis.text.x = element_text(angle = 90)) 
 ```
 
+## Sentiment Plot
 
+These plots attempt to find the trend of log of shares as a function of average positive and average negative polarity. If we see that the number of shares increases or decrease with the increase in the polarity of the content, then we can infer the trend from the slope of the linear regression line on the plots given below.
 
+```{r}
+df_train$Popularity <-qcut(df_train$log_shares,
+                           cuts=5,
+                           label=c('Very Low','Low','Average','High','Very High'))
+ggplot(df_train, aes(avg_positive_polarity,log_shares))+ 
+  geom_point(aes(color=Popularity)) + 
+  geom_smooth(method="lm",color='black')+
+  labs(x="Average positive polarity",y="Log of shares")
+```
+
+## Average number of shares per words in title
+
+A plot of average number of log shares vs number of words in the title is generated. Title is an important part and it is key to have adequate number and key words in the title. The plot helps us conclude whether the number of words in the title drives the log of shares.
+
+```{r}
+data_plot_3 <- df_train %>% 
+  select(n_tokens_title, log_shares) %>% 
+  group_by(n_tokens_title) %>% 
+  summarise(mean_token_title = mean(log_shares))
+
+ggplot(data_plot_3, aes(n_tokens_title, mean_token_title)) + 
+  geom_line() +
+  labs(x="Number of words in the title",y="Average number of shares")
+```
+## Histogram
+
+```{r}
+plot2 <- df_train %>% 
+  select(day, log_shares) %>% 
+  group_by(day) %>% 
+  summarise(Avg_Shares = mean(log_shares))
+
+ggplot(data = plot2, aes(day, Avg_Shares)) + 
+  labs(x="Days of Week",y="Number OF Shares",title="Average log of shares per day") + 
+  geom_col(fill="violet",width=0.4)+
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
 Fairly self explanatory graph, the variables most correlated with shares will most likely be some of the strongest predictors in the models; particularly the linear regressions.
 
