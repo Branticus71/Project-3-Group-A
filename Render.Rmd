@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo=TRUE,eval=TRUE,message=FALSE,warning=FALSE)
 ```
 
 # Automating R markdown  
-`out_params` is a vector of parameters which are used as input parameters to **main.Rmd** file. Since the `param` argument in `render()` function requires params to be a named list, we have converted each element of `out_params` to a named list using `lapply()` into `out_params_list`.  
+`out_params` is a vector of parameters which are used as input parameters to **Project-3-Group-A.Rmd** file. Since the `param` argument in `render()` function requires params to be a named list, we have converted each element of `out_params` to a named list using `lapply()` into `out_params_list`.  
 
 `out_filename` is a vector of output file names we want for each of the input parameter.  
 
@@ -22,7 +22,7 @@ out_filename <- c("Lifestyle_analysis.md","Entertainment_analysis.md",
                   "Business_analysis.md","Social_media_analysis.md",
                   "Tech_analysis.md","World_analysis.md")
 for (i in 1:6){
-  rmarkdown::render(input = "main.Rmd", output_file = out_filename[i],
+  rmarkdown::render(input = "Project-3-Group-A.Rmd", output_file = out_filename[i],
                     params = out_params_list[[i]])
 }
 ```
