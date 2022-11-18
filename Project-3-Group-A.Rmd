@@ -17,11 +17,7 @@ library(timereg)
 ```
 # Introduction
 
-You should have an introduction section that briefly describes the data and the variables you have to work
-with (just discuss the ones you want to use). Your target variables is the shares variable.
-You should also mention the purpose of your analysis and the methods you’ll use to model the response.
-You’ll describe those in more detail later.
-This section should be done by the ‘second’ group member.
+The data set provided to us describes the features (token details, keywords, day of the week etc) for each record and different channels. The purpose of the analysis which will be performed as part of the project is to predict the performance of each individual channel. The channel performance is measured by the number of shares which in modelling context is the response variable. The shares variable has been converted into log shares for better analysis and plotting purposes. The url for each record and time delta which is days between article publication are removed as they are not useful in predicting shares. There are few variables such as url, timedelta, data_channel_is_bus, data_channel_is_entertainment, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world, data_channel_is_lifestyles which are are removed before performing any analysis or modelling. Finally, four modelling methodologies  are PCA regression, forward subset linear regression, and ensemble technique such as random forest and boosting are fitted on the training dataset. To evaluate the model fit, the testing is performed on the test dataset and R Squared value is calculated. These R Squared values are compared for all four models and the one with the highest R Squared value is declared as a winner for a particular channel.
 
 # Reading in Data
 Need to decide on what variables we will use to predict log_shares. Some ideas below:
@@ -268,6 +264,19 @@ pred_PC <- predict(fit_PC, newdata = test_PC)
 postResample(pred_PC, obs = df_test$log_shares)
 ```
 
+## Forward Selection
+
+```{r}
+set.seed(111)
+
+tr_ctrl <- trainControl(method = "repeatedcv")
+lm_forward_fit <- train(log_shares ~ ., data = df_PC,
+                        preProcess = c("center", "scale"),
+                        method = "leapForward",
+                        tuneGrid = expand.grid(nvmax = seq(1,42,2)),
+                        trControl = tr_ctrl)
+```
+
 ## Random Forest
 ```{r, warning = FALSE}
 #May need to add or remove variables later
@@ -285,9 +294,12 @@ pred_forest <- predict(fit_forest, newdata = df_test)
 postResample(pred_forest, df_test$log_shares)
 ```
 
+## Boosted Tree
+
 ```{r}
 set.seed(111)
-boost_fit <- train(shares ~ .,data = train_df2,
+df_boost <- df_forest
+boost_fit <- train(log_shares ~ .,data = df_boost,
                    method = 'gbm',
                    preProcess = c("center", "scale"),
                    trControl = tr_ctrl,
