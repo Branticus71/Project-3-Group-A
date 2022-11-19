@@ -114,8 +114,8 @@ We can see if there is a perceived effect of the `day` the article is published 
 
 ## Scatterplot of all Continuous Predictors Versus Log(shares) in a Facet Wrap. 
 ```{r, fig.height=9}
-interest_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
-                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title", "self_reference_avg_sharess")
+interest_vars <- all_of(c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
+                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title", "self_reference_avg_sharess"))
 categ_day %>%
   gather(interest_vars, key = "variables", value = "value") %>%
   ggplot(aes(x = value, y = log_shares, color = day)) +
@@ -144,6 +144,8 @@ cor_train %>%
     xlab("Variable") +
   theme(axis.text.x = element_text(angle = 90)) 
 ```
+
+Fairly self explanatory graph and table, the variables most correlated with shares could be some of the strongest predictors in the models; particularly the linear regressions. Also, note that the closer the value of the correlation is to zero the weaker the relationship. There is no set rule for what constitutes "weak" versus "strong" correlation and the "rule of thumb" for evaluating this changes based upon what kind of data you have or what field you work in. For this data, I believe we are working more in the field of Psychology so using Jacob Cohen's guidelines of 0.1 , 0.3, and 0.5 being the cutoffs for a weak, moderate, or strong relationship respectively could help with interpretation.
 
 ## Sentiment Plot
 
@@ -187,7 +189,6 @@ ggplot(data = plot2, aes(day, Avg_Shares)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Fairly self explanatory graph, the variables most correlated with shares will most likely be some of the strongest predictors in the models; particularly the linear regressions.
 
 ## Summary statistics using the `describe` function from the `psych` package sorted by standard deviation.
 ```{r}
@@ -199,6 +200,9 @@ table_continuous <- tab %>%
 #Paged table to allow reader to peruse all variables
 paged_table(table_continuous)
 ```
+
+The above table is helpful for understanding how our variables behave and if there are any issues in the data. For instance, variables concerning rate should have a minimum of 0 and maximum of one. So if any variables are seen outside that range then there are problems within the collected data and our models may be innaccurate. You can also get an idea for how spread the data is by looking at the size of their standard deviation relative to their mean. 
+
 ## Contingency table using created categorical variables
 
 ```{r}
@@ -224,7 +228,7 @@ contingency_table%>%
   kable_classic(full_width = F)
 ```
 
-## Principal Components Screeplot
+## Principal Components Scree plot
 ```{r}
 #Excluding shares for creating principal components
 df_no_shares <- df_continuous %>%
@@ -249,9 +253,15 @@ df_PC <- df_PC %>%
 
 ```
 
+This scree plot of the principal components shows us the proportion of variance explained each individual PC as well as the proportion of variance explained by the sum of PCs. These graphs will demonstrate approximately how many PCs need to be included in our regression model based upon our criteria of adding the PCs until 80% variation is explained. If each PC explains a relatively low amount of variation in the data then the number of PCs used in our regression will be fairly high.
+
 # Modeling
 
-## Principal Components Regression
+## Linear Regression Models
+
+A linear regression is a model that relates a set of independent variables to a dependent variable in a linear fashion. This model consists of coefficients attached to each variable that when multiplied and added together give us a prediction for our dependent variable at those specific values. It is created by finding the coefficients that minimize the residual sum of squares for our data. The residual sum of squares is a measure of the distance between the predicted values for the dependent variable from the actual values of the dependent variable for every observation in the data.
+
+### Principal Components Regression
 ```{r}
 set.seed(111)
 fit_PC <- train(log_shares ~ ., data = df_PC, 
@@ -264,7 +274,7 @@ pred_PC <- predict(fit_PC, newdata = test_PC)
 postResample(pred_PC, obs = df_test$log_shares)
 ```
 
-## Forward Selection
+### Forward Selection
 
 ```{r}
 set.seed(111)
@@ -277,7 +287,12 @@ lm_forward_fit <- train(log_shares ~ ., data = df_PC,
                         trControl = tr_ctrl)
 ```
 
-## Random Forest
+## Ensemble Methods
+
+### Random Forest
+
+A Random Forest model is a regression tree in which the sample data is treated as a population and many bootstrap samples are taken using replacement to then create trees for each sample. In addition, the selected predictors are randomly sampled across each tree resulting in trees that are less correlated with each other and therefore can be combined to get stronger predictions. In the following model, trees are created with random samples of predictors ranging in number from 1 to 16(all). <----------- Change this if we use different variables.
+
 ```{r, warning = FALSE}
 #May need to add or remove variables later
 forest_vars <- c("log_shares","num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
@@ -294,7 +309,7 @@ pred_forest <- predict(fit_forest, newdata = df_test)
 postResample(pred_forest, df_test$log_shares)
 ```
 
-## Boosted Tree
+### Boosted Tree
 
 ```{r}
 set.seed(111)
