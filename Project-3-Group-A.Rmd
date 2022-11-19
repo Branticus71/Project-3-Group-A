@@ -166,8 +166,9 @@ cor_train %>%
 
 Fairly self explanatory graph and table, the variables most correlated with shares could be some of the strongest predictors in the models; particularly the linear regressions. Also, note that the closer the value of the correlation is to zero the weaker the relationship. There is no set rule for what constitutes "weak" versus "strong" correlation and the "rule of thumb" for evaluating this changes based upon what kind of data you have or what field you work in. For this data, I believe we are working more in the field of Psychology so using Jacob Cohen's guidelines of 0.1 , 0.3, and 0.5 being the cutoffs for a weak, moderate, or strong relationship respectively could help with interpretation.
 
-## Sentiment Plot
+## Sentiment Plots
 
+### Positive Polarity Plot
 ```{r, warning=FALSE, message=FALSE}
 #Creating a new df for this graph to avoid having Popularity variable in our final models
 df_sentiment <- df_train
@@ -182,6 +183,17 @@ ggplot(df_sentiment, aes(avg_positive_polarity,log_shares))+
 ```
 
 This plot attempts to find the trend of log of shares as a function of average positive polarity. Things to look for are the distribution of points for each level of `Popularity`. Are all points in each category clustered together on the x-axis? If so then there is most likely a strong relationship between positive polarity and the shares an article gets. Also, using the trend line we can see if on average we predict shares to increase or decrease with an increase in positive polarity. If the line is fairly flat then this relationship is likely fairly weak.
+
+### Negative Polarity Plot
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(df_sentiment, aes(avg_negative_polarity,log_shares))+ 
+  geom_point(aes(color=Popularity)) + 
+  geom_smooth(method="lm",color='black')+
+  labs(x="Average Negative Polarity",y="Log of Shares", title= "Sentiment Plot of Log(shares) and Average Negative Polarity")
+```
+
+This plot can be interpreted the same as the previous one but with the caveat that it is measured from -1 to 0. So points closer to -1 have a higher average negative polarity. So when looking at the trend line, a negative slope would indicate a positive relationship instead of a negative relationship and vice versa in a reversal from the previous plot.
 
 ## Average number of shares per words in title
 
@@ -211,15 +223,17 @@ paged_table(table_continuous)
 
 The above table is helpful for understanding how our variables behave and if there are any issues in the data. For instance, variables concerning rate should have a minimum of 0 and maximum of one. So if any variables are seen outside that range then there are problems within the collected data and our models may be innaccurate. You can also get an idea for how spread the data is by looking at the size of their standard deviation relative to their mean. 
 
-## Contingency table using created categorical variables
+## Contingency Tables of Images and Videos by Day
 
+### Table for Images by Day
 ```{r}
 #Creating new Categorical Variable for Video Range
-categ_day$images_range <- ifelse(categ_day$num_imgs %in% c(0:30), "0-30",
+categ_day$images_range <- ifelse(categ_day$num_imgs %in% c(0:15), "0-15",
+                          ifelse(categ_day$num_imgs %in% c(16:30), "16-30",
                           ifelse(categ_day$num_imgs %in% c(31:60), "31-60",
-                         ifelse(categ_day$num_imgs %in% c(61:200), "61 or More","Null")))
+                         ifelse(categ_day$num_imgs %in% c(61:200), "61 or More","Null"))))
 categ_day$images_range <- ordered(as.factor(categ_day$images_range),
-                        levels = c("0-30","31-60","61 or More"))
+                        levels = c("0-15","16-30","31-60","61 or More"))
 contingency_table <- table(categ_day$day, categ_day$images_range)
 contingency_table%>%
   kbl(caption="Table for Days and Number of Images") %>%
@@ -227,6 +241,24 @@ contingency_table%>%
 ```
 
 The above table helps us visualize the use of images within articles by day. Things to look for are if there are any notable changes in distribution across days. Do articles released on weekends have more images or vice versa? If so that could account for some differences in shares across days if they exist.
+
+### Table for videos by Day
+
+```{r}
+#Creating new Categorical Variable for Video Range
+categ_day$videos_range <- ifelse(categ_day$num_videos %in% c(0:15), "0-15",
+                          ifelse(categ_day$num_videos %in% c(16:30), "16-30",
+                          ifelse(categ_day$num_videos %in% c(31:60), "31-60",
+                         ifelse(categ_day$num_videos %in% c(61:120), "61 or More","Null"))))
+categ_day$videos_range <- ordered(as.factor(categ_day$videos_range),
+                        levels = c("0-15","16-30","31-60","61 or More"))
+contingency_table <- table(categ_day$day, categ_day$videos_range)
+contingency_table%>%
+  kbl(caption="Table for Days and Number of Videos") %>%
+  kable_classic(full_width = F)
+```
+
+
 
 
 ## Principal Components Scree plot
