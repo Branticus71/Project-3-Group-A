@@ -297,10 +297,13 @@ df_PC <- df_PC %>%
   bind_cols(log_shares = df_continuous$log_shares,tuesday = df_train$tuesday, 
             wednesday = df_train$wednesday, thursday = df_train$thursday, friday = df_train$friday,
             saturday = df_train$saturday, sunday = df_train$sunday)
+#Storing trainControl settings to be used for each model
+trctrl <- trainControl(method = "repeatedcv" , number = 10, repeats = 5)
+
 set.seed(111)
 fit_PC <- train(log_shares ~ ., data = df_PC, 
                  method = "lm",
-                 trControl = trainControl(method = "cv" , number = 10))
+                 trControl = trctrl)
 #Creating a test data frame from the PCs then using that to test the PC regression. RMSE reported after.
 test_PC <- predict(PCs_eighty, newdata = df_test)
 pred_PC <- predict(fit_PC, newdata = test_PC)
@@ -313,12 +316,12 @@ perf_PC
 ```{r}
 set.seed(111)
 #Using Monday as the base day
-tr_ctrl <- trainControl(method = "repeatedcv")
+
 fit_forward <- train(log_shares ~ ., data = select(df_train, -monday),
                         preProcess = c("center", "scale"),
                         method = "leapForward",
                         tuneGrid = expand.grid(nvmax = seq(1,18,2)),
-                        trControl = tr_ctrl)
+                        trControl = trctrl)
 pred_forward <- predict(fit_forward, newdata = df_test)
 perf_forward <- c("Forward_Selection_Regression", postResample(pred_forward, df_test$log_shares))
 perf_forward
@@ -333,7 +336,7 @@ A Random Forest model is a regression tree in which the sample data is treated a
 ```{r, warning = FALSE}
 set.seed(111)
 fit_forest <- train(log_shares ~ ., data = df_train, method = "treebag",
-                 trControl = trainControl(method = "cv" , number = 10),
+                 trControl = trctrl,
                  preProcess = c("center", "scale"),
                  mtry = c(1:19))
 pred_forest <- predict(fit_forest, newdata = df_test)
@@ -343,12 +346,15 @@ perf_forest
 
 ### Boosted Tree
 
+A boosted tree is a model in which trees are built sequentially instead of all at once. It takes in a number of inputs shrinkage, interaction depth, and number of trees then keeps sequentially building trees with each tree taking into account the residuals from previous trees. This improves over a single tree fit and often performs better than other ensemble methods such as bagged trees or random forests because by sequentially building the trees the model slowly learns from the mistakes(residuals) and improves whereas other methods have trees that are computed simultaneously not taking each other into account.
+
 ```{r}
 set.seed(111)
+#Model is created using the default values for the tuneGrid
 fit_boost <- train(log_shares ~ .,data = df_train,
                    method = 'gbm',
                    preProcess = c("center", "scale"),
-                   trControl = tr_ctrl,
+                   trControl = trctrl,
                    verbose = FALSE)
 pred_boost <- predict(fit_boost, newdata= df_test)
 perf_boost <- c("Boosted_Tree", postResample(pred_boost, df_test$log_shares))
