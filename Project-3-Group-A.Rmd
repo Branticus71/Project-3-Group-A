@@ -17,7 +17,7 @@ library(timereg)
 ```
 # Introduction
 
-The data set provided to us describes the features (token details, keywords, day of the week etc) for each record and different channels. The purpose of the analysis which will be performed as part of the project is to predict the performance of each individual channel. The channel performance is measured by the number of shares which in modelling context is the response variable. The shares variable has been converted into log shares for better analysis and plotting purposes. The url for each record and time delta which is days between article publication are removed as they are not useful in predicting shares. There are few variables such as url, timedelta, data_channel_is_bus, data_channel_is_entertainment, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world, data_channel_is_lifestyles which are are removed before performing any analysis or modelling. Finally, four modelling methodologies  are PCA regression, forward subset linear regression, and ensemble technique such as random forest and boosting are fitted on the training dataset. To evaluate the model fit, the testing is performed on the test dataset and R Squared value is calculated. These R Squared values are compared for all four models and the one with the highest R Squared value is declared as a winner for a particular channel.
+The data set provided to us describes the features (token details, keywords, day of the week etc) for each record and different channels. The purpose of the analysis which will be performed as part of the project is to predict the performance of each individual channel. The channel performance is measured by the number of shares which in modelling context is the response variable. The shares variable has been converted into log shares for better analysis and plotting purposes. The url for each record and time delta which is days between article publication are removed as they are not useful in predicting shares. There are few variables such as url, timedelta, data_channel_is_bus, data_channel_is_entertainment, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world, data_channel_is_lifestyles which are are removed before performing any analysis or modelling. Finally, four modelling methodologies are PCA regression, forward subset linear regression, and ensemble technique such as random forest and boosting are fitted on the training dataset. To evaluate the model fit, the testing is performed on the test dataset and RMSE is calculated. These RMSE values are compared for all four models and the one with the lowest RMSE is declared as a winner for a particular channel.
 
 # Reading in Data
 Need to decide on what variables we will use to predict log_shares. Some ideas below:
@@ -33,9 +33,14 @@ Need to decide on what variables we will use to predict log_shares. Some ideas b
 9. kw_avg_avg: Avg. keyword (avg. shares)
 10. n_tokens_title: Number of words in the title
 11. self_reference_avg_sharess: Avg. shares of referenced articles in Mashable
+12. avg_positive_polarity: Avg. polarity of positive words
+13. avg_negative_polarity: Avg. polarity of negative words
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 df <- read_csv("./OnlineNewsPopularity.csv")
+# Creating a vector of the names of the variables we want to use in our analysis
+interest_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
+                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title",                               "self_reference_avg_sharess", "avg_positive_polarity", "avg_negative_polarity", "log_shares",                    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "data_channel")
 #Creating a new variable for to contain data channels and removing the old one.
 df <- df %>%
   mutate(data_channel = if_else(
@@ -59,17 +64,23 @@ df <- df %>%
   mutate(log_shares = log(shares)) %>%
   select(-shares) %>%
   #Renaming the day variables
-  rename(monday = weekday_is_monday , tuesday = weekday_is_tuesday, wednesday = weekday_is_wednesday,          thursday = weekday_is_thursday, friday = weekday_is_friday, saturday = weekday_is_saturday,           sunday = weekday_is_sunday)
+  rename(monday = weekday_is_monday , tuesday = weekday_is_tuesday, wednesday = weekday_is_wednesday,                    thursday = weekday_is_thursday, friday = weekday_is_friday, saturday = weekday_is_saturday,
+         sunday = weekday_is_sunday) %>%
+  #Removing all unused variables
+  select(all_of(interest_vars))
   
-#Subsetting to just a single data_channel type
+#Sub-setting to just a single data_channel type then removing the data_channel variable
 df_filtered <- df %>%
-                filter(data_channel == "Lifestyle") 
+               filter(data_channel == "Lifestyle") %>%
+               select(-data_channel)
+
 #Creating the training and test datasets
+set.seed(111)
 index_train <- createDataPartition(df_filtered$log_shares, p = .7, list = FALSE )
 df_train <- df_filtered[index_train,]
 df_test <- df_filtered[-index_train,]
 
-#Creating a data frame containing a categorical day variable for graphs
+#Creating a data frame containing a single categorical day variable for graphing
 categ_day <- df_train %>%
   mutate(day = if_else(
     monday == 1,
@@ -91,8 +102,7 @@ categ_day <- df_train %>%
 
 #Removing variables that aren't continuous for tables and principal components
 df_continuous <- df_train %>%
-  select(-c(monday, tuesday, wednesday, thursday,friday, saturday, sunday, is_weekend, data_channel,
-            n_non_stop_words))
+  select(-c(monday, tuesday, wednesday, thursday,friday, saturday, sunday))
 ```
 
 # Summarization
@@ -113,11 +123,11 @@ We can see if there is a perceived effect of the `day` the article is published 
 
 
 ## Scatterplot of all Continuous Predictors Versus Log(shares) in a Facet Wrap. 
-```{r, fig.height=25, fig.width = 10}
-interest_vars <- all_of(c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
-                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title", "self_reference_avg_sharess"))
+```{r, fig.height=25, fig.width = 10, warning =FALSE, message=FALSE}
+facet_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
+                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title",                               "self_reference_avg_sharess", "avg_positive_polarity", "avg_negative_polarity")
 categ_day %>%
-  gather(interest_vars, key = "variables", value = "value") %>%
+  gather(all_of(facet_vars), key = "variables", value = "value") %>%
   ggplot(aes(x = value, y = log_shares, color = day)) +
     geom_jitter() +
     stat_smooth(method = "lm") +
@@ -129,7 +139,7 @@ For these graphs, it helps to focus on each line and it's color. If all lines ar
 
 
 ## Correlation Plot of Each Variable with Shares
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #Need to limit to just predictors of interest once those are decided on
 cor_train<- df_train %>%
   correlate() %>%
@@ -151,14 +161,17 @@ Fairly self explanatory graph and table, the variables most correlated with shar
 
 These plots attempt to find the trend of log of shares as a function of average positive and average negative polarity. If we see that the number of shares increases or decrease with the increase in the polarity of the content, then we can infer the trend from the slope of the linear regression line on the plots given below.
 
-```{r}
-df_train$Popularity <-qcut(df_train$log_shares,
+```{r, warning=FALSE, message=FALSE}
+#Creating a new df for this graph to avoid having Popularity variable in our final models
+df_sentiment <- df_train
+df_sentiment$Popularity <-qcut(df_sentiment$log_shares,
                            cuts=5,
                            label=c('Very Low','Low','Average','High','Very High'))
-ggplot(df_train, aes(avg_positive_polarity,log_shares))+ 
+ggplot(df_sentiment, aes(avg_positive_polarity,log_shares))+ 
   geom_point(aes(color=Popularity)) + 
   geom_smooth(method="lm",color='black')+
   labs(x="Average positive polarity",y="Log of shares")
+
 ```
 
 ## Average number of shares per words in title
@@ -175,6 +188,7 @@ ggplot(data_plot_3, aes(n_tokens_title, mean_token_title)) +
   geom_line() +
   labs(x="Number of words in the title",y="Average number of shares")
 ```
+
 ## Histogram
 
 ```{r}
@@ -206,12 +220,12 @@ The above table is helpful for understanding how our variables behave and if the
 ## Contingency table using created categorical variables
 
 ```{r}
-# Creating new Categorical Variable
-categ_day$videos_range <- ifelse(df_train$num_videos %in% c(0:30), "0-30",
-                          ifelse(df_train$num_videos %in% c(31:60), "31-60",
-                          ifelse(df_train$num_videos %in% c(61:90), "61-90","Null")))
-categ_day$videos_range <- ordered(as.factor(df_train$videos_range),
-                        levels = c("0-30","31-60","61-90"))
+#Creating new Categorical Variable for Video Range
+categ_day$videos_range <- ifelse(categ_day$num_videos %in% c(0:30), "0-30",
+                          ifelse(categ_day$num_videos %in% c(31:60), "31-60",
+                         ifelse(categ_day$num_videos %in% c(61:120), "61 or More","Null")))
+categ_day$videos_range <- ordered(as.factor(categ_day$videos_range),
+                        levels = c("0-30","31-60","61 or More"))
 contingency_table <- table(categ_day$day, categ_day$videos_range)
 contingency_table%>%
   kbl(caption="Table for Days and Number of Images") %>%
@@ -231,16 +245,6 @@ plot(PCs$sdev^2/sum(PCs$sdev^2), xlab = "Principal Component",
 ylab = "Proportion of Variance Explained", ylim = c(0, 1), type = 'b')
 plot(cumsum(PCs$sdev^2/sum(PCs$sdev^2)), xlab = "Principal Component",
 ylab = "Cum. Prop of Variance Explained", ylim = c(0, 1), type = 'b')
-#Selecting only the PC's up to a 80% variance explained threshold using caret
-PCs_eighty <- preProcess(df_no_shares, method = c("center","scale", "pca"), thresh = .8)
-#Creating a data frame with just my PC's, day variables, and log_shares to use later as a regression
-df_PC <- predict(PCs_eighty, newdata = df_no_shares)
-#Monday is excluded to avoid multicollinearity
-df_PC <- df_PC %>%
-  bind_cols(log_shares = df_continuous$log_shares,tuesday = df_train$tuesday, 
-            wednesday = df_train$wednesday, thursday = df_train$thursday, friday = df_train$friday,
-            saturday = df_train$saturday, sunday = df_train$sunday)
-
 ```
 
 This scree plot of the principal components shows us the proportion of variance explained each individual PC as well as the proportion of variance explained by the sum of PCs. These graphs will demonstrate approximately how many PCs need to be included in our regression model based upon our criteria of adding the PCs until 80% variation is explained. If each PC explains a relatively low amount of variation in the data then the number of PCs used in our regression will be fairly high.
@@ -253,15 +257,23 @@ A linear regression is a model that relates a set of independent variables to a 
 
 ### Principal Components Regression
 ```{r}
+#Selecting only the PC's up to a 80% variance explained threshold using caret
+PCs_eighty <- preProcess(df_no_shares, method = c("center","scale", "pca"), thresh = .80)
+#Creating a data frame with just my PC's, day variables, and log_shares to use later as a regression
+df_PC <- predict(PCs_eighty, newdata = df_no_shares)
+#Monday is excluded to avoid multicollinearity
+df_PC <- df_PC %>%
+  bind_cols(log_shares = df_continuous$log_shares,tuesday = df_train$tuesday, 
+            wednesday = df_train$wednesday, thursday = df_train$thursday, friday = df_train$friday,
+            saturday = df_train$saturday, sunday = df_train$sunday)
 set.seed(111)
 fit_PC <- train(log_shares ~ ., data = df_PC, 
                  method = "lm",
                  trControl = trainControl(method = "cv" , number = 10))
-summary(fit_PC)
 #Creating a test data frame from the PCs then using that to test the PC regression. RMSE reported after.
 test_PC <- predict(PCs_eighty, newdata = df_test)
 pred_PC <- predict(fit_PC, newdata = test_PC)
-perf_PC <- c("Principal_Component", postResample(pred_PC, obs = df_test$log_shares))
+perf_PC <- c("Principal_Component_Regression", postResample(pred_PC, df_test$log_shares))
 perf_PC
 ```
 
@@ -269,33 +281,30 @@ perf_PC
 
 ```{r}
 set.seed(111)
-
+#Using Monday as the base day
 tr_ctrl <- trainControl(method = "repeatedcv")
-lm_forward_fit <- train(log_shares ~ ., data = df_PC,
+fit_forward <- train(log_shares ~ ., data = select(df_train, -monday),
                         preProcess = c("center", "scale"),
                         method = "leapForward",
-                        tuneGrid = expand.grid(nvmax = seq(1,42,2)),
+                        tuneGrid = expand.grid(nvmax = seq(1,18,2)),
                         trControl = tr_ctrl)
+pred_forward <- predict(fit_forward, newdata = df_test)
+perf_forward <- c("Forward_Selection_Regression", postResample(pred_forward, df_test$log_shares))
+perf_forward
 ```
 
 ## Ensemble Methods
 
 ### Random Forest
 
-A Random Forest model is a regression tree in which the sample data is treated as a population and many bootstrap samples are taken using replacement to then create trees for each sample. In addition, the selected predictors are randomly sampled across each tree resulting in trees that are less correlated with each other and therefore can be combined to get stronger predictions. In the following model, trees are created with random samples of predictors ranging in number from 1 to 16(all). <----------- Change this if we use different variables.
+A Random Forest model is a regression tree in which the sample data is treated as a population and many bootstrap samples are taken using replacement to then create trees for each sample. In addition, the selected predictors are randomly sampled across each tree resulting in trees that are less correlated with each other and therefore can be combined to get stronger predictions. In the following model, trees are created with random samples of predictors ranging in number from 1 to 19(all).  variables.
 
 ```{r, warning = FALSE}
-#May need to add or remove variables later
-forest_vars <- c("log_shares","num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
-                   "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title",
-                   "tuesday", "wednesday","thursday","friday", "saturday", "sunday", "monday")
-df_forest <- df_train %>%
-  select(forest_vars)
 set.seed(111)
-fit_forest <- train(log_shares ~ ., data = df_forest, method = "treebag",
+fit_forest <- train(log_shares ~ ., data = df_train, method = "treebag",
                  trControl = trainControl(method = "cv" , number = 10),
                  preProcess = c("center", "scale"),
-                 mtry = c(1:16))
+                 mtry = c(1:19))
 pred_forest <- predict(fit_forest, newdata = df_test)
 perf_forest <- c("Random_Forest",postResample(pred_forest, df_test$log_shares))
 perf_forest
@@ -305,20 +314,27 @@ perf_forest
 
 ```{r}
 set.seed(111)
-df_boost <- df_forest
-boost_fit <- train(log_shares ~ .,data = df_boost,
+fit_boost <- train(log_shares ~ .,data = df_train,
                    method = 'gbm',
                    preProcess = c("center", "scale"),
                    trControl = tr_ctrl,
                    verbose = FALSE)
+pred_boost <- predict(fit_boost, newdata= df_test)
+perf_boost <- c("Boosted_Tree", postResample(pred_boost, df_test$log_shares))
+perf_boost
 ```
 
 ## Selecting Top Performing Model
 
-```{r}
-df_selection <- data.frame(matrix(ncol = 4, nrow =4))
-df_selection <- bind_rows(perf_PC, perf_forest)
+```{r, warning=FALSE, message=TRUE}
+#df_selection <- data.frame(matrix(ncol = 4, nrow =4))
+suppressMessages(
+  df_selection <- bind_rows(perf_PC, perf_forest, perf_boost, perf_forward)
+)
 colnames(df_selection) <- c("Model_Name", "RMSE", "R_Squared", "MAE")
+#Arranging models from best to worst performance by RMSE
+df_selection <- df_selection %>% arrange(RMSE) 
 df_selection
-```
 
+paste("The top performing model is the", df_selection[1,1], "with a RMSE of", df_selection[1,2], sep = " " )
+```
