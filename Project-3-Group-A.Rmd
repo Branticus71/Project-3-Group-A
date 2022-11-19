@@ -113,7 +113,7 @@ We can see if there is a perceived effect of the `day` the article is published 
 
 
 ## Scatterplot of all Continuous Predictors Versus Log(shares) in a Facet Wrap. 
-```{r, fig.height=9}
+```{r, fig.height=25, fig.width = 10}
 interest_vars <- all_of(c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
                    "rate_negative_words", "num_videos", "num_hrefs", "kw_avg_avg", "n_tokens_title", "self_reference_avg_sharess"))
 categ_day %>%
@@ -121,7 +121,7 @@ categ_day %>%
   ggplot(aes(x = value, y = log_shares, color = day)) +
     geom_jitter() +
     stat_smooth(method = "lm") +
-    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=2  )
+    facet_wrap(~ variables, scales = "free", shrink = FALSE, ncol=1  )
 ```
 
 For these graphs, it helps to focus on each line and it's color. If all lines are generally negative in slope then we expect there to be a negative relationship between that variable and the number of shares while positive slope means a positive relationship. If the lines differ quite a bit between color then there is most likely an interaction between that variable, the `day` of release, and shares. Also, keep in mind that any outliers could have a strong effect on the creation of the line and in turn it's slope potentially misrepresenting the relationship between that variable and shares. 
@@ -178,7 +178,7 @@ ggplot(data_plot_3, aes(n_tokens_title, mean_token_title)) +
 ## Histogram
 
 ```{r}
-plot2 <- df_train %>% 
+plot2 <- categ_day %>% 
   select(day, log_shares) %>% 
   group_by(day) %>% 
   summarise(Avg_Shares = mean(log_shares))
@@ -206,23 +206,13 @@ The above table is helpful for understanding how our variables behave and if the
 ## Contingency table using created categorical variables
 
 ```{r}
-# Creating new Categorical Variables
-
-df_train$videos_range <- ifelse(df_train$num_videos %in% c(0:30), "0-30",
+# Creating new Categorical Variable
+categ_day$videos_range <- ifelse(df_train$num_videos %in% c(0:30), "0-30",
                           ifelse(df_train$num_videos %in% c(31:60), "31-60",
                           ifelse(df_train$num_videos %in% c(61:90), "61-90","Null")))
-df_train$videos_range <- ordered(as.factor(df_train$videos_range),
+categ_day$videos_range <- ordered(as.factor(df_train$videos_range),
                         levels = c("0-30","31-60","61-90"))
-df_train$day <- ifelse(df_train$monday == 1, "Monday",
-                ifelse(df_train$tuesday == 1, "Tuesday",
-                ifelse(df_train$wednesday == 1, "Wednesday", 
-                ifelse(df_train$thursday == 1, "Thursday",
-                ifelse(df_train$friday == 1, "Friday",
-                ifelse(df_train$saturday == 1, "Saturday",
-                ifelse(df_train$sunday == 1, "Sunday","Null")))))))
-df_train$day <- ordered(as.factor(df_train$day),
-                        levels = c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))
-contingency_table <- table(df_train$day,df_train$videos_range)
+contingency_table <- table(categ_day$day, categ_day$videos_range)
 contingency_table%>%
   kbl(caption="Table for Days and Number of Images") %>%
   kable_classic(full_width = F)
@@ -271,7 +261,8 @@ summary(fit_PC)
 #Creating a test data frame from the PCs then using that to test the PC regression. RMSE reported after.
 test_PC <- predict(PCs_eighty, newdata = df_test)
 pred_PC <- predict(fit_PC, newdata = test_PC)
-postResample(pred_PC, obs = df_test$log_shares)
+perf_PC <- c("Principal_Component", postResample(pred_PC, obs = df_test$log_shares))
+perf_PC
 ```
 
 ### Forward Selection
@@ -306,7 +297,8 @@ fit_forest <- train(log_shares ~ ., data = df_forest, method = "treebag",
                  preProcess = c("center", "scale"),
                  mtry = c(1:16))
 pred_forest <- predict(fit_forest, newdata = df_test)
-postResample(pred_forest, df_test$log_shares)
+perf_forest <- c("Random_Forest",postResample(pred_forest, df_test$log_shares))
+perf_forest
 ```
 
 ### Boosted Tree
@@ -320,3 +312,13 @@ boost_fit <- train(log_shares ~ .,data = df_boost,
                    trControl = tr_ctrl,
                    verbose = FALSE)
 ```
+
+## Selecting Top Performing Model
+
+```{r}
+df_selection <- data.frame(matrix(ncol = 4, nrow =4))
+df_selection <- bind_rows(perf_PC, perf_forest)
+colnames(df_selection) <- c("Model_Name", "RMSE", "R_Squared", "MAE")
+df_selection
+```
+
