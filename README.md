@@ -25,7 +25,7 @@ This repo exists to hold separate automated reports creating predictive models u
 8. Timereg
 
 ## Code Used to Knit Each Report from a Single Markdown File
-
+```
 #Create vector of channels
 channel <- c("Lifestyle", "Entertainment", "Business", "Socmed", "Tech", "World")
 #create filenames
@@ -38,4 +38,4 @@ reports <- tibble(output_file, params)
 library(rmarkdown)
 library(tidyverse)
 pwalk(reports, render, input = "./Project-3-Group-A.Rmd")
-
+```
