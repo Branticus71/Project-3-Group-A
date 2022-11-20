@@ -1,8 +1,12 @@
 ---
 title: "Project-3-Group-A"
 author: "Brant Armstrong, Naman Goel"
-date: "2022-11-06"
-output: html_document
+output: 
+  github_document:
+    toc: true
+    toc_depth: 3
+params:
+      channel: "Lifestyle"
 ---
 # Necessary Packages
 ```{r, message = FALSE, warning = FALSE}
@@ -79,7 +83,7 @@ df <- df %>%
   
 #Sub-setting to just a single data_channel type then removing the data_channel variable
 df_filtered <- df %>%
-               filter(data_channel == "Lifestyle") %>%
+               filter(data_channel == params$channel) %>%
                select(-data_channel)
 
 #Creating the training and test datasets
@@ -116,6 +120,7 @@ df_continuous <- df_train %>%
 # Summarization
 
 ## Boxplot of Log(shares) by Day.
+
 ```{r}
 #Box plot of log_shares by day
 ggplot(categ_day, aes(x = day, y = log_shares, col = day)) + 
@@ -146,13 +151,16 @@ For these graphs, it helps to focus on each line and it's color. If all lines ar
 
 
 
-## Correlation Plot of Each Variable with Shares
+## Correlation Table and Plot of Each Variable with Shares
 ```{r, message=FALSE, warning=FALSE}
-#Need to limit to just predictors of interest once those are decided on
 cor_train<- df_train %>%
   correlate() %>%
   focus(log_shares)
-paged_table(cor_train)
+
+cor_train %>% 
+  kbl(caption="Table for Correlations of Predictors with Log(shares)" , format = "markdown") %>%
+  kable_classic(full_width = F)
+
 
 cor_train %>% 
   mutate(term = factor(term, levels = term[order(log_shares)])) %>% 
@@ -219,7 +227,10 @@ table_continuous <- tab %>%
   arrange(desc(sd)) %>%
   modify_if( ~is.numeric(.), ~round(.,2))
 #Paged table to allow reader to peruse all variables
-paged_table(table_continuous)
+table_continuous %>% 
+  select(-vars) %>%
+  kbl(caption="Table for Summary Statistics of Predictors" , format = "markdown") %>%
+  kable_classic(full_width = F)
 ```
 
 The above table is helpful for understanding how our variables behave and if there are any issues in the data. For instance, variables concerning rate should have a minimum of 0 and maximum of one. So if any variables are seen outside that range then there are problems within the collected data and our models may be innaccurate. You can also get an idea for how spread the data is by looking at the size of their standard deviation relative to their mean. 
@@ -237,7 +248,7 @@ categ_day$images_range <- ordered(as.factor(categ_day$images_range),
                         levels = c("0-15","16-30","31-60","61 or More"))
 contingency_table <- table(categ_day$day, categ_day$images_range)
 contingency_table%>%
-  kbl(caption="Table for Days and Number of Images") %>%
+  kbl(caption="Table for Days and Number of Images" , format = "markdown") %>%
   kable_classic(full_width = F)
 ```
 
@@ -256,7 +267,7 @@ categ_day$videos_range <- ordered(as.factor(categ_day$videos_range),
                         levels = c("0-5","6-15","16-30","31-60","61 or More"))
 contingency_table <- table(categ_day$day, categ_day$videos_range)
 contingency_table%>%
-  kbl(caption="Table for Days and Number of Videos") %>%
+  kbl(caption="Table for Days and Number of Videos", format = "markdown") %>%
   kable_classic(full_width = F)
 ```
 
@@ -287,7 +298,7 @@ This scree plot of the principal components shows us the proportion of variance 
 A linear regression is a model that relates a set of independent variables to a dependent variable in a linear fashion. This model consists of coefficients attached to each variable that when multiplied and added together give us a prediction for our dependent variable at those specific values. It is created by finding the coefficients that minimize the residual sum of squares for our data. The residual sum of squares is a measure of the distance between the predicted values for the dependent variable from the actual values of the dependent variable for every observation in the data.
 
 ### Principal Components Regression
-```{r}
+```{r, cache = TRUE}
 #Selecting only the PC's up to a 80% variance explained threshold using caret
 PCs_eighty <- preProcess(df_no_shares, method = c("center","scale", "pca"), thresh = .80)
 #Creating a data frame with just my PC's, day variables, and log_shares to use later as a regression
@@ -313,10 +324,9 @@ perf_PC
 
 ### Forward Selection
 
-```{r}
+```{r, cache = TRUE}
 set.seed(111)
 #Using Monday as the base day
-
 fit_forward <- train(log_shares ~ ., data = select(df_train, -monday),
                         preProcess = c("center", "scale"),
                         method = "leapForward",
@@ -333,7 +343,7 @@ perf_forward
 
 A Random Forest model is a regression tree in which the sample data is treated as a population and many bootstrap samples are taken using replacement to then create trees for each sample. In addition, the selected predictors are randomly sampled across each tree resulting in trees that are less correlated with each other and therefore can be combined to get stronger predictions. In the following model, trees are created with random samples of predictors ranging in number from 1 to 19(all).  variables.
 
-```{r, warning = FALSE}
+```{r, warning = FALSE, cache = TRUE}
 set.seed(111)
 fit_forest <- train(log_shares ~ ., data = df_train, method = "treebag",
                  trControl = trctrl,
@@ -348,7 +358,7 @@ perf_forest
 
 A boosted tree is a model in which trees are built sequentially instead of all at once. It takes in a number of inputs shrinkage, interaction depth, and number of trees then keeps sequentially building trees with each tree taking into account the residuals from previous trees. This improves over a single tree fit and often performs better than other ensemble methods such as bagged trees or random forests because by sequentially building the trees the model slowly learns from the mistakes(residuals) and improves whereas other methods have trees that are computed simultaneously not taking each other into account.
 
-```{r}
+```{r, cache = TRUE}
 set.seed(111)
 #Model is created using the default values for the tuneGrid
 fit_boost <- train(log_shares ~ .,data = df_train,
