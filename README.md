@@ -1,6 +1,6 @@
 # Project-3-Group-A
 ## Purpose
-This repo exists to hold separate automated reports creating predictive models using the Online News Popularity Data Set from the UCI Machine Learning Repository. Each report is automated for a particular data channel and they are in the links below.
+This repo exists to hold separate automated reports that create visualizations and predictive models using the Online News Popularity Data Set from the UCI Machine Learning Repository. Each report is automated for a particular data channel and they are in the links below.
 ## Links to Each Analysis
 [Lifestyle articles is available here](LifestyleAnalysis.html)
 
