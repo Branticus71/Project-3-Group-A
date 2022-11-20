@@ -27,15 +27,25 @@ This repo exists to hold separate automated reports creating predictive models u
 ## Code Used to Knit Each Report from a Single Markdown File
 
 #Create vector of channels
+
 channel <- c("Lifestyle", "Entertainment", "Business", "Socmed", "Tech", "World")
+
 #create filenames
+
 output_file <- paste0(channel, "Analysis.md")
+
 #create a list for each team with just the team name parameter
+
 params = lapply(channel, FUN = function(x){list(channel = x)})
+
 #put into a data frame
+
 reports <- tibble(output_file, params)
+
 #Required Packages
+
 library(rmarkdown)
+
 library(tidyverse)
 
 pwalk(reports, render, input = "./Project-3-Group-A.Rmd")
