@@ -10,7 +10,7 @@ This repo exists to hold separate automated reports creating predictive models u
 
 [Social Media articles is available here](SocmedAnalysis.html)
 
-[Tecg articles is available here](TechAnalysis.html)
+[Tech articles is available here](TechAnalysis.html)
 
 [World articles is available here](WorldAnalysis.html)
 ## List of R Packages Used
