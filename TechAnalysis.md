@@ -12,7 +12,7 @@ Brant Armstrong, Naman Goel
     -   <a
         href="#scatterplot-of-all-continuous-predictors-versus-logshares-in-a-facet-wrap-colored-based-on-day"
         id="toc-scatterplot-of-all-continuous-predictors-versus-logshares-in-a-facet-wrap-colored-based-on-day">Scatterplot
-        of all Continuous Predictors Versus Log(shares) in a Facet Wrap Colored
+        of All Continuous Predictors Versus Log(shares) in a Facet Wrap Colored
         Based on Day.</a>
     -   <a href="#correlation-table-and-plot-of-each-variable-with-shares"
         id="toc-correlation-table-and-plot-of-each-variable-with-shares">Correlation
@@ -22,21 +22,21 @@ Brant Armstrong, Naman Goel
             id="toc-positive-polarity-plot">Positive Polarity Plot</a>
         -   <a href="#negative-polarity-plot"
             id="toc-negative-polarity-plot">Negative Polarity Plot</a>
-    -   <a href="#average-number-of-shares-per-words-in-title"
-        id="toc-average-number-of-shares-per-words-in-title">Average number of
-        shares per words in title</a>
+    -   <a href="#plot-of-average-number-of-logshares-versus-words-in-title"
+        id="toc-plot-of-average-number-of-logshares-versus-words-in-title">Plot
+        of Average Number of Log(shares) Versus Words in title</a>
     -   <a
         href="#summary-statistics-using-the-describe-function-from-the-psych-package-sorted-by-standard-deviation"
         id="toc-summary-statistics-using-the-describe-function-from-the-psych-package-sorted-by-standard-deviation">Summary
-        statistics using the <code>describe</code> function from the
-        <code>psych</code> package sorted by standard deviation.</a>
+        Statistics Using the <code>describe</code> Function from the
+        <code>psych</code> Package Sorted by Standard Deviation.</a>
     -   <a href="#contingency-tables-of-images-and-videos-by-day"
         id="toc-contingency-tables-of-images-and-videos-by-day">Contingency
         Tables of Images and Videos by Day</a>
         -   <a href="#table-for-images-by-day"
             id="toc-table-for-images-by-day">Table for Images by Day</a>
         -   <a href="#table-for-videos-by-day"
-            id="toc-table-for-videos-by-day">Table for videos by Day</a>
+            id="toc-table-for-videos-by-day">Table for Videos by Day</a>
     -   <a href="#principal-components-scree-plot"
         id="toc-principal-components-scree-plot">Principal Components Scree
         plot</a>
@@ -71,25 +71,16 @@ library(timereg)
 
 # Introduction
 
-The data set provided to us describes the features (token details,
-keywords, day of the week etc) for each record and different channels.
-The purpose of the analysis which will be performed as part of the
-project is to predict the performance of each individual channel. The
-channel performance is measured by the number of shares which in
-modelling context is the response variable. The shares variable has been
-converted into log shares for better analysis and plotting purposes. The
-url for each record and time delta which is days between article
-publication are removed as they are not useful in predicting shares.
-There variables for each data channel are used as parameters to create
-unique outputs for each channel. Finally, four modelling methodologies
-are PCA regression, forward subset linear regression, and ensemble
-technique such as random forest and boosting are fitted on the training
-data. To evaluate the model fit, the testing is performed on the test
-data and RMSE is calculated. These RMSE values are compared for all four
-models and the one with the lowest RMSE is declared as a winner for a
-particular channel.
-
-Variables used as predictors in our models along with descriptions:
+The data used for this project is the Online News Popularity Data Set
+from the UCI Machine Learning Repository. It contains an outcome
+variable ,`shares`, and a number of possible predictors. The purpose of
+this analysis is to automate the data visualization along with the
+creation and selection of predictive models for the `shares` variable
+across each data channel. The `shares` variable has been converted into
+log(shares) primarily for better visualization due to outliers. The
+variables for each data channel are used as parameters to create unique
+reports for each channel. The variables used as predictors in our models
+along with their provided descriptions are as follows:
 
 1.  `num_imgs`: Number of images
 2.  `n_tokens_content`: Number of words in the content
@@ -114,7 +105,23 @@ Variables used as predictors in our models along with descriptions:
 18. `avg_positive_polarity`: Avg. polarity of positive words
 19. `avg_negative_polarity`: Avg. polarity of negative words
 
+Finally, the four models created for each channel are a PCA regression,
+a forward subset linear regression, a random forest model, and a boosted
+tree model. Each model is trained on a 70% subset of the data then
+evaluated on the remaining test data and their RMSE is recorded. These
+RMSE values are then compared across all four models and the one with
+the lowest RMSE is declared as a winner for a particular channel.
+
 # Reading in Data
+
+The .csv file containing the data is read in then a new `data_channel`
+variable is created for better automation of reports. Afterwards, the
+old channel variables are removed, `shares` is transformed into
+`log_shares`, the day variables are renamed, and all unused predictor
+variables are removed. Then, the data is split into a training and test
+set containing 70% and 30% of the observations respectively. In
+addition, two data frames are created for the express purpose of
+visualization and principal components analysis.
 
 ``` r
 df <- read_csv("./OnlineNewsPopularity.csv")
@@ -160,7 +167,7 @@ index_train <- createDataPartition(df_filtered$log_shares, p = .7, list = FALSE 
 df_train <- df_filtered[index_train,]
 df_test <- df_filtered[-index_train,]
 
-#Creating a data frame containing a single categorical day variable for graphing
+#Creating a data frame containing a categorical day variable for graphing
 categ_day <- df_train %>%
   mutate(day = if_else(
     monday == 1,
@@ -208,7 +215,7 @@ certain days have higher or lower medians along with different size
 whiskers then there may be a relationship between publishing `day` and
 the amount of shares an article gets.
 
-## Scatterplot of all Continuous Predictors Versus Log(shares) in a Facet Wrap Colored Based on Day.
+## Scatterplot of All Continuous Predictors Versus Log(shares) in a Facet Wrap Colored Based on Day.
 
 ``` r
 facet_vars <- c("num_imgs", "n_tokens_content", "n_unique_tokens", "rate_positive_words",
@@ -243,7 +250,7 @@ cor_train<- df_train %>%
   focus(log_shares)
 
 cor_train %>% 
-  kbl(caption="Table for Correlations of Predictors with Log(shares)" , format = "markdown") %>%
+  kbl(caption="Table for Correlations of Predictors with Log(shares)", format = "markdown") %>%
   kable_classic(full_width = F)
 ```
 
@@ -302,6 +309,7 @@ or strong relationship respectively could help with interpretation.
 ``` r
 #Creating a new df for this graph to avoid having Popularity variable in our final models
 df_sentiment <- df_train
+#Creating the Popularity variable
 df_sentiment$Popularity <-qcut(df_sentiment$log_shares,
                            cuts=5,
                            label=c('Very Low','Low','Average','High','Very High'))
@@ -315,12 +323,14 @@ ggplot(df_sentiment, aes(avg_positive_polarity,log_shares))+
 
 This plot attempts to find the trend of log of shares as a function of
 average positive polarity. Things to look for are the distribution of
-points for each level of `Popularity`. Are all points in each category
-clustered together on the x-axis? If so then there is most likely a
-strong relationship between positive polarity and the shares an article
-gets. Also, using the trend line we can see if on average we predict
-shares to increase or decrease with an increase in positive polarity. If
-the line is fairly flat then this relationship is likely fairly weak.
+points for each level of `Popularity` and the trend line. Are all points
+in same category clustered together on the x-axis? If so there could be
+a strong relationship between the average positive polarity and shares.
+If each category is fairly spread out along the x-axis then there is
+likely a weak relationship or none at all. Finally,we can also use the
+trend line to see if on average we predict shares to increase or
+decrease with an increase in positive polarity. If the line is fairly
+flat then this relationship is likely fairly weak.
 
 ### Negative Polarity Plot
 
@@ -340,7 +350,7 @@ negative slope would indicate a positive relationship instead of a
 negative relationship and vice versa in a reversal from the previous
 plot.
 
-## Average number of shares per words in title
+## Plot of Average Number of Log(shares) Versus Words in title
 
 ``` r
 data_plot_3 <- df_train %>% 
@@ -350,7 +360,7 @@ data_plot_3 <- df_train %>%
 
 ggplot(data_plot_3, aes(n_tokens_title, mean_token_title)) + 
   geom_line() +
-  labs(x="Number of Words in the Title", y="Average number of shares", title ="Line Plot of Log(shares) and the Number of Words in a Title")
+  labs(x="Number of Words in the Title", y="Average Number of log(Shares)", title ="Line Plot of Log(shares) and the Number of Words in a Title")
 ```
 
 ![](TechAnalysis_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
@@ -362,7 +372,7 @@ then titles with less words are shared more. If the graph has many
 alternating peaks and valleys then there may be a weak relationship
 between title length and shares or no relationship at all.
 
-## Summary statistics using the `describe` function from the `psych` package sorted by standard deviation.
+## Summary Statistics Using the `describe` Function from the `psych` Package Sorted by Standard Deviation.
 
 ``` r
 tab <-  describe(df_continuous, fast = TRUE)
@@ -404,8 +414,8 @@ and if there are any issues in the data. For instance, variables
 concerning rate should have a minimum of 0 and maximum of one. So if any
 variables are seen outside that range then there are problems within the
 collected data and our models may be innaccurate. You can also get an
-idea for how spread the data is by looking at the size of their standard
-deviation relative to their mean.
+idea for how spread the variables are by looking at the size of their
+standard deviation relative to their mean.
 
 ## Contingency Tables of Images and Videos by Day
 
@@ -447,7 +457,7 @@ distribution across days. Do articles released on weekends have more
 images or vice versa? If so that could account for some differences in
 shares across days if they exist.
 
-### Table for videos by Day
+### Table for Videos by Day
 
 ``` r
 #Creating new Categorical Variable for Video Range
@@ -460,7 +470,7 @@ categ_day$videos_range <- ordered(as.factor(categ_day$videos_range),
                         levels = c("0-5","6-15","16-30","31-60","61 or More"))
 contingency_table <- table(categ_day$day, categ_day$videos_range)
 contingency_table%>%
-  kbl(caption="Table for Days and Number of Videos", format = "markdown") %>%
+  kbl(caption="Table for Days and Number of Videos" , format = "markdown") %>%
   kable_classic(full_width = F)
 ```
 
@@ -512,6 +522,10 @@ the data then the number of PCs used in our regression will be fairly
 high.
 
 # Modeling
+
+All models are creating using the same settings for `trainControl` and
+then evaluated on the test data before saving their performance metrics
+to be used later in choosing the top performing model.
 
 ## Linear Regression Models
 
@@ -587,7 +601,7 @@ selected predictors are randomly sampled across each tree resulting in
 trees that are less correlated with each other and therefore can be
 combined to get stronger predictions. In the following model, trees are
 created with random samples of predictors ranging in number from 1 to
-19(all). variables.
+19(all) variables.
 
 ``` r
 set.seed(111)
@@ -613,7 +627,13 @@ improves over a single tree fit and often performs better than other
 ensemble methods such as bagged trees or random forests because by
 sequentially building the trees the model slowly learns from the
 mistakes(residuals) and improves whereas other methods have trees that
-are computed simultaneously not taking each other into account.
+are computed simultaneously not taking each other into account. Our
+model is created using the `caret` package defaults of:
+
+-   `shrinkage`: 0.1
+-   `interaction.depth`: 1,2, and 3
+-   `n.minobsinnode`: 10
+-   `n.trees`: 50, 100, and 150
 
 ``` r
 set.seed(111)
@@ -632,6 +652,9 @@ perf_boost
     ##       "Boosted_Tree"  "0.764354828619908" "0.0986134166173343"  "0.593663536929862"
 
 ## Selecting Top Performing Model
+
+Combines all the saved prediction performance variables into one data
+frame then sorts it by RMSE to find the top performing model.
 
 ``` r
 #df_selection <- data.frame(matrix(ncol = 4, nrow =4))
