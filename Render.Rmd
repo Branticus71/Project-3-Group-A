@@ -18,9 +18,9 @@ Since there are only six parameters, we decided to go with a for loop to iterate
 library(rmarkdown)
 out_params <- c("lifestyle","entertainment","bus","socmed","tech","world")
 out_params_list = lapply(out_params, FUN = function(x){list(var = x)})
-out_filename <- c("Lifestyle_analysis.md","Entertainment_analysis.md",
-                  "Business_analysis.md","Social_media_analysis.md",
-                  "Tech_analysis.md","World_analysis.md")
+out_filename <- c("Lifestyle_Channel.md","Entertainment_Channel.md",
+                  "Business_Channel.md","Social_media_Channel.md",
+                  "Tech_Channel.md","World_Channel.md")
 for (i in 1:6){
   rmarkdown::render(input = "Project-3-Group-A.Rmd", output_file = out_filename[i],
                     params = out_params_list[[i]])
